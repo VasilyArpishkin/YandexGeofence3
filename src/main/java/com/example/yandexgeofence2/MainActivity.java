@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -39,6 +40,9 @@ import com.yandex.mapkit.mapview.MapView;
 import com.yandex.runtime.image.ImageProvider;
 import android.widget.ArrayAdapter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity implements InputListener {
     private final String API_KEY = "8fe19095-8322-4d19-b9cc-ef614df4a306";
     private MapView mapView;
@@ -51,11 +55,13 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     private final float DEFAULT_RADIUS=100;
     private Button  clickZone;
     private boolean isButtonClicked=false;
-    private int k=0;
+    private int k1=0, k2=0;
     private int pos=0;
-    private String[] Names_of_zones={};
+    private List<String> Names_of_zones= new ArrayList<>();
     private ListView listView;
     private TextView textView;
+    private EditText editText;
+    private List<MyZones> zones = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         mapView = findViewById(R.id.mapview);
         listView=findViewById(R.id.lv);
         textView=findViewById(R.id.tv);
+        editText = findViewById(R.id.et);
         mapObjectCollection = mapView.getMap().getMapObjects().addCollection();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Names_of_zones);
@@ -98,8 +105,14 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         clickZone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                isButtonClicked=true;
-                Toast.makeText(getApplicationContext(), "укажите свою зону", Toast.LENGTH_SHORT).show();
+                if(k2==0) {
+                    isButtonClicked = true;
+                    Toast.makeText(getApplicationContext(), "укажите свою зону", Toast.LENGTH_SHORT).show();
+                    k2++;
+                }
+                else {
+                    Names_of_zones.add(String.valueOf(editText.getText()));
+                }
             }
         });
     }
@@ -160,22 +173,18 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             Log.d("LocationUpdate","MarkerChanged");
         }
         // Перемещаем камеру на новую позицию
-        if(k==0){
+        if(k1==0){
          mapView.getMap().move(
                 new CameraPosition(userLocation, 15.0f, 0.0f, 0.0f),
                 new com.yandex.mapkit.Animation(com.yandex.mapkit.Animation.Type.SMOOTH, 1),
                 null
         );
-        k++;
+        k1++;
         }
     }
+    private void updateZoneList(){
 
-
-    private void drawCircle(Point center, float radius) {
-        mapObjectCollection.addCircle(new Circle(center, radius));
     }
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -195,8 +204,11 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     @Override
     public void onMapTap(@NonNull Map map, @NonNull Point point) {
         if(isButtonClicked){
+            Toast.makeText(getApplicationContext(), "Кликните ещё раз, чтобы добавить текст", Toast.LENGTH_SHORT).show();
+            editText.setVisibility(View.VISIBLE);
             circleCenter = point;
-            drawCircle(circleCenter, DEFAULT_RADIUS);
+            MapObject circle = mapObjectCollection.addCircle(new Circle(circleCenter, DEFAULT_RADIUS));
+            zones.add(new MyZones(point, DEFAULT_RADIUS, circle));
             isButtonClicked=false;
         }
     }
