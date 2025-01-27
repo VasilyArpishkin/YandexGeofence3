@@ -12,6 +12,7 @@
         android:layout_height="match_parent"
         tools:ignore="MissingConstraints" />
     <ImageButton
+        android:id='@+id/menu_in'
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/menu"
@@ -32,8 +33,19 @@
         app:layout_constraintRight_toRightOf="parent"
         tools:ignore="MissingConstraints" />
     <Button
+        android:id="@+id/add_name"
+        android:layout_width="180dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:text="добавить название"
+        app:layout_constraintBottom_toTopOf="@+id/click"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        tools:ignore="MissingConstraints" />
+
+    <Button
         android:id="@+id/click"
-        android:layout_width="wrap_content"
+        android:layout_width="180dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="80dp"
         android:text="добавить геозону"
@@ -42,10 +54,13 @@
         app:layout_constraintBottom_toBottomOf="parent"
         tools:ignore="MissingConstraints" />
     <RelativeLayout
+        android:id="@+id/rl"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone"
-        android:layout_marginBottom="50dp">
+        android:layout_marginBottom="50dp"
+        android:background="#FFFFFF"
+        >
         <TextView
             android:id="@+id/tv"
             android:layout_width="wrap_content"
@@ -53,11 +68,21 @@
             android:layout_alignParentRight="true"
             android:layout_alignParentLeft="true"
             android:layout_alignParentTop="true"
+            android:layout_marginTop="10dp"
             android:text="здесь отображаются ваши текущие геозоны"
             android:textAlignment="center"
-            android:textSize="16dp"
+            android:textSize="20dp"
             android:visibility="visible"
-
+            />
+        <ImageButton
+            android:id="@+id/menu_out"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/menu"
+            android:layout_alignParentRight="true"
+            android:layout_alignTop="@+id/tv"
+            android:layout_marginTop="55dp"
+            android:layout_marginRight="15dp"
             />
         <ListView
             android:id="@+id/lv"
@@ -65,6 +90,9 @@
             android:layout_height="match_parent"
             android:visibility="visible"
             android:layout_below="@+id/tv"
+            android:layout_alignRight="@+id/menu_out"
+            android:layout_marginRight="60dp"
+            android:layout_marginTop="10dp"
             />
     </RelativeLayout>
 

@@ -15,7 +15,9 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -52,14 +54,16 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     // Маркер для отображения местоположения пользователя
     private MapObjectCollection mapObjectCollection;
     private Point circleCenter;
+    private RelativeLayout relativeLayout;
     private final float DEFAULT_RADIUS=100;
-    private Button  clickZone;
-    private boolean isButtonClicked=false;
-    private int k1=0, k2=0;
+    private Button  clickZone, addNameZone;
+    private boolean isButtonClicked=false, isZoneAdded=false, isRaletiveLayoutVisible=false;
+    private int k1=0;
     private int pos=0;
     private List<String> Names_of_zones= new ArrayList<>();
     private ListView listView;
     private TextView textView;
+    private ImageButton imageButton1, imageButton2;
     private EditText editText;
     private List<MyZones> zones = new ArrayList<>();
 
@@ -70,10 +74,14 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         MapKitFactory.initialize(this);
         setContentView(R.layout.activity_main);
         clickZone = findViewById(R.id.click);
+        addNameZone=findViewById(R.id.add_name);
         mapView = findViewById(R.id.mapview);
         listView=findViewById(R.id.lv);
         textView=findViewById(R.id.tv);
         editText = findViewById(R.id.et);
+        relativeLayout = findViewById(R.id.rl);
+        imageButton1= findViewById(R.id.menu_in);
+        imageButton2 = findViewById(R.id.menu_out);
         mapObjectCollection = mapView.getMap().getMapObjects().addCollection();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Names_of_zones);
@@ -105,14 +113,31 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         clickZone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(k2==0) {
+                if(!isZoneAdded && !isButtonClicked) {
                     isButtonClicked = true;
                     Toast.makeText(getApplicationContext(), "укажите свою зону", Toast.LENGTH_SHORT).show();
-                    k2++;
                 }
-                else {
-                    Names_of_zones.add(String.valueOf(editText.getText()));
+            }
+        });
+        addNameZone.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(isButtonClicked && isZoneAdded){
+                    String name = editText.getText().toString();
+                    Names_of_zones.add(name);
+                    isZoneAdded=false;
+                    isButtonClicked=false;
+                    editText.setVisibility(View.GONE);
                 }
+            }
+        });
+        imageButton1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(!isRaletiveLayoutVisible) {
+                    relativeLayout.setVisibility(View.VISIBLE);
+                }
+                else relativeLayout.setVisibility(View.GONE);
             }
         });
     }
@@ -204,12 +229,12 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     @Override
     public void onMapTap(@NonNull Map map, @NonNull Point point) {
         if(isButtonClicked){
-            Toast.makeText(getApplicationContext(), "Кликните ещё раз, чтобы добавить текст", Toast.LENGTH_SHORT).show();
-            editText.setVisibility(View.VISIBLE);
             circleCenter = point;
             MapObject circle = mapObjectCollection.addCircle(new Circle(circleCenter, DEFAULT_RADIUS));
             zones.add(new MyZones(point, DEFAULT_RADIUS, circle));
-            isButtonClicked=false;
+            editText.setVisibility(View.VISIBLE);
+            Toast.makeText(getApplicationContext(), "введите название зоны", Toast.LENGTH_SHORT).show();
+            isZoneAdded=true;
         }
     }
 
