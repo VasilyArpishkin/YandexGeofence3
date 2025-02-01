@@ -56,13 +56,12 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     private Point circleCenter;
     private RelativeLayout relativeLayout;
     private final float DEFAULT_RADIUS=100;
-    private Button  clickZone, addNameZone;
-    private boolean isButtonClicked=false, isZoneAdded=false, isRaletiveLayoutVisible=false;
-    private int k1=0;
+    private Button  clickZone;
+    private boolean isButtonClicked=false, isRaletiveLayoutVisible=false;
+    private int k1=0,k2=0;
     private int pos=0;
     private List<String> Names_of_zones= new ArrayList<>();
     private ListView listView;
-    private TextView textView;
     private ImageButton imageButton1, imageButton2;
     private EditText editText;
     private List<MyZones> zones = new ArrayList<>();
@@ -74,10 +73,8 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         MapKitFactory.initialize(this);
         setContentView(R.layout.activity_main);
         clickZone = findViewById(R.id.click);
-        addNameZone=findViewById(R.id.add_name);
         mapView = findViewById(R.id.mapview);
         listView=findViewById(R.id.lv);
-        textView=findViewById(R.id.tv);
         editText = findViewById(R.id.et);
         relativeLayout = findViewById(R.id.rl);
         imageButton1= findViewById(R.id.menu_in);
@@ -113,21 +110,14 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         clickZone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(!isZoneAdded && !isButtonClicked) {
-                    isButtonClicked = true;
+                if(!isButtonClicked && k2==0) {
                     Toast.makeText(getApplicationContext(), "укажите свою зону", Toast.LENGTH_SHORT).show();
+                    isButtonClicked=true;
                 }
-            }
-        });
-        addNameZone.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(isButtonClicked && isZoneAdded){
-                    String name = editText.getText().toString();
-                    Names_of_zones.add(name);
-                    isZoneAdded=false;
-                    isButtonClicked=false;
+                else if(!isButtonClicked && k2==1){
+                    Names_of_zones.add(editText.getText().toString());
                     editText.setVisibility(View.GONE);
+                    clickZone.setText("добавить геозону");
                 }
             }
         });
@@ -228,13 +218,16 @@ public class MainActivity extends AppCompatActivity implements InputListener {
 
     @Override
     public void onMapTap(@NonNull Map map, @NonNull Point point) {
-        if(isButtonClicked){
+        if(isButtonClicked && k2==0){
             circleCenter = point;
             MapObject circle = mapObjectCollection.addCircle(new Circle(circleCenter, DEFAULT_RADIUS));
             zones.add(new MyZones(point, DEFAULT_RADIUS, circle));
             editText.setVisibility(View.VISIBLE);
             Toast.makeText(getApplicationContext(), "введите название зоны", Toast.LENGTH_SHORT).show();
-            isZoneAdded=true;
+            isButtonClicked=false;
+            k2++;
+            clickZone.setText("добавить название");
+            editText.setVisibility(View.VISIBLE);
         }
     }
 

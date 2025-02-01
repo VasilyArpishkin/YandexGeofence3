@@ -32,16 +32,6 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         tools:ignore="MissingConstraints" />
-    <Button
-        android:id="@+id/add_name"
-        android:layout_width="180dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="10dp"
-        android:text="добавить название"
-        app:layout_constraintBottom_toTopOf="@+id/click"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        tools:ignore="MissingConstraints" />
 
     <Button
         android:id="@+id/click"
