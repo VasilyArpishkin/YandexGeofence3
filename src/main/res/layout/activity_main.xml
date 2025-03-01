@@ -12,7 +12,7 @@
         android:layout_height="match_parent"
         tools:ignore="MissingConstraints" />
     <ImageButton
-        android:id='@+id/menu_in'
+        android:id='@+id/menu'
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/menu"
@@ -50,6 +50,8 @@
         android:visibility="gone"
         android:layout_marginBottom="50dp"
         android:background="#FFFFFF"
+        android:layout_marginRight="80dp"
+        android:layout_marginTop="10dp"
         >
         <TextView
             android:id="@+id/tv"
@@ -58,21 +60,10 @@
             android:layout_alignParentRight="true"
             android:layout_alignParentLeft="true"
             android:layout_alignParentTop="true"
-            android:layout_marginTop="10dp"
             android:text="здесь отображаются ваши текущие геозоны"
             android:textAlignment="center"
             android:textSize="20dp"
             android:visibility="visible"
-            />
-        <ImageButton
-            android:id="@+id/menu_out"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/menu"
-            android:layout_alignParentRight="true"
-            android:layout_alignTop="@+id/tv"
-            android:layout_marginTop="55dp"
-            android:layout_marginRight="15dp"
             />
         <ListView
             android:id="@+id/lv"
@@ -80,8 +71,6 @@
             android:layout_height="match_parent"
             android:visibility="visible"
             android:layout_below="@+id/tv"
-            android:layout_alignRight="@+id/menu_out"
-            android:layout_marginRight="60dp"
             android:layout_marginTop="10dp"
             />
     </RelativeLayout>
