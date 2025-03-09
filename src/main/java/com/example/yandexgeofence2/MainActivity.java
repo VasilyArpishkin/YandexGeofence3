@@ -7,10 +7,11 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,7 +25,6 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -42,11 +42,9 @@ import com.yandex.mapkit.map.InputListener;
 import com.yandex.mapkit.map.Map;
 import com.yandex.mapkit.map.MapObject;
 import com.yandex.mapkit.map.MapObjectCollection;
-import com.yandex.mapkit.map.MapObjectTapListener;
 import com.yandex.mapkit.map.PlacemarkMapObject;
 import com.yandex.mapkit.mapview.MapView;
 import com.yandex.runtime.image.ImageProvider;
-import android.widget.ArrayAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,8 +63,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     private final float DEFAULT_RADIUS=100;
     private Button  clickZone;
     private boolean isButtonClicked=false, isRaletiveLayoutVisible=false;
-    private int k1=0,k2=0,k3=0;
-    private int pos=0;
+    private int k1=0,k2=0;
     private List<String> Names_of_zones= new ArrayList<>();
     private ListView listView;
     private ImageButton imageButton;
@@ -114,20 +111,25 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         // Запуск периодического получения местоположения
         startLocationUpdates();
         createNotificationChannel();
+
+
         clickZone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(!isButtonClicked && k2==0) {
+                if(!isButtonClicked && k2%2==0) {
                     Toast.makeText(getApplicationContext(), "укажите свою зону", Toast.LENGTH_SHORT).show();
                     isButtonClicked=true;
                 }
-                else if(!isButtonClicked && k2==1){
+                else if(!isButtonClicked && k2%2==1){
                     Names_of_zones.add(editText.getText().toString());
                     editText.setVisibility(View.GONE);
+                    k2++;
                     clickZone.setText("добавить геозону");
                 }
             }
         });
+
+
         imageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -141,17 +143,32 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                 }
             }
         });
+
+
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 for(int i=0;i<zones.size();i++){
-                    if(position==k3){
-                        
+                    if(position==i){
+                        mapView.getMap().move(
+                                new CameraPosition(zones.get(i).getCenter(), 15.0f, 0.0f, 0.0f),
+                                new com.yandex.mapkit.Animation(com.yandex.mapkit.Animation.Type.SMOOTH, 1),
+                                null
+                        );
                     }
                 }
             }
         });
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                deleteDialog(position);
+            }
+        });
     }
+
+
     private void startLocationUpdates() {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -210,7 +227,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         if(zones!=null){
             for(MyZones zone: zones){
                 if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=zone.getRadius()){
-
+                    sendNotification();
                 }
             }
         }
@@ -223,6 +240,8 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         k1++;
         }
     }
+
+
     private double calculateDistance(double lat1, double lat2, double lon1, double lon2){
         double lat1R=Math.toRadians(lat1);
         double lat2R=Math.toRadians(lat2);
@@ -233,6 +252,8 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         double distance = Math.sqrt(x*x+y*y)* 6371000;
         return distance;
     }
+
+
     public void sendNotification(){
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             return;
@@ -243,8 +264,49 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
         notificationManager.notify(1, builder.build());
-
     }
+
+
+    private void createNotificationChannel() {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            CharSequence name = "my channel";
+            String description = "in/out zone notifications";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+    private void deleteDialog(final int position){
+        new AlertDialog.Builder(this)
+                .setTitle("Удаление зоны")
+                .setMessage("Вы уверены,что хотите удалить эту зону?")
+                .setPositiveButton("Удалить", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        removeZone(position);
+                    }
+                })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    private void removeZone(int position){
+        if (position>=0 && position<zones.size() && position<Names_of_zones.size()) {
+            MapObject circle = zones.get(position).getMapObject();
+            mapObjectCollection.remove(circle);
+            zones.remove(position);
+            Names_of_zones.remove(position);
+            ((ArrayAdapter) listView.getAdapter()).notifyDataSetChanged();
+            Toast.makeText(this, "зона удалена", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            Toast.makeText(this, "Ошибка, некоректный индекс зоны", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -259,20 +321,11 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             }
         }
     }
-    private void createNotificationChannel() {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-        CharSequence name = "my channel";
-        String description = "in/out zone notifications";
-        int importance = NotificationManager.IMPORTANCE_DEFAULT;
-        NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
-        channel.setDescription(description);
-        NotificationManager notificationManager = getSystemService(NotificationManager.class);
-        notificationManager.createNotificationChannel(channel);
-    }
-    }
+
+
     @Override
     public void onMapTap(@NonNull Map map, @NonNull Point point) {
-        if(isButtonClicked && k2==0){
+        if(isButtonClicked && k2%2==0){
             circleCenter = point;
             MapObject circle = mapObjectCollection.addCircle(new Circle(circleCenter, DEFAULT_RADIUS));
             zones.add(new MyZones(point, DEFAULT_RADIUS, circle));
@@ -284,6 +337,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             editText.setVisibility(View.VISIBLE);
         }
     }
+
 
     @Override
     public void onMapLongTap(@NonNull Map map, @NonNull Point point) {
