@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Names_of_zones);
         listView.setAdapter(adapter);
+        
         // Инициализация LocationCallback
         locationCallback = new LocationCallback() {
             @Override
@@ -125,6 +126,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                     editText.setVisibility(View.GONE);
                     k2++;
                     clickZone.setText("добавить геозону");
+                    editText.setText("");
                 }
             }
         });
@@ -160,10 +162,12 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             }
         });
 
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+        listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 deleteDialog(position);
+                return false;
             }
         });
     }
