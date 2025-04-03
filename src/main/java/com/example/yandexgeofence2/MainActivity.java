@@ -1,6 +1,7 @@
 package com.example.yandexgeofence2;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -8,13 +9,18 @@ import androidx.core.app.NotificationManagerCompat;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
@@ -51,6 +57,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements InputListener {
     private final String API_KEY = "8fe19095-8322-4d19-b9cc-ef614df4a306";
+    private static final int FOREGROUND_SERVICE_ID = 1;
     private static final String CHANNEL_ID = "my_id";
     private MapView mapView;
     private FusedLocationProviderClient fusedLocationClient;
@@ -253,7 +260,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         double lon2R=Math.toRadians(lon2);
         double x= (lon2R-lon1R)*Math.cos((lat1R+lat2R)/2);
         double y = lat2R-lat1R;
-        double distance = Math.sqrt(x*x+y*y)* 6371000;
+        double distance = Math.sqrt(x*x+y*y)*6371000;
         return distance;
     }
 
@@ -282,6 +289,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             notificationManager.createNotificationChannel(channel);
         }
     }
+
     private void deleteDialog(final int position){
         new AlertDialog.Builder(this)
                 .setTitle("Удаление зоны")
@@ -341,6 +349,30 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             editText.setVisibility(View.VISIBLE);
         }
     }
+    public class LocationService extends Service{
+        @Override
+        public void onCreate(){
+            super.onCreate();
+            startForeground(FOREGROUND_SERVICE_ID, createNotificationLoc());
+            startLocationUpdates();
+        }
+        private Notification createNotificationLoc(){
+            Intent notificationIntent = new Intent(this, MainActivity.class);
+            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 , notificationIntent, PendingIntent.FLAG_IMMUTABLE);
+            return new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle("Отслеживание местоположения")
+                    .setContentText("Идет отслеживание вашего местоположения")
+                    .setContentIntent(pendingIntent)
+                    .build();
+        }
+
+        @Nullable
+        @Override
+        public IBinder onBind(Intent intent) {
+            return null;
+        }
+    }
+
 
 
     @Override
