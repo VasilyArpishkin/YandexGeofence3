@@ -237,9 +237,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         // Перемещаем камеру на новую позицию
         if(zones!=null){
             for(MyZones zone: zones){
-                if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=zone.getRadius()){
-                    sendNotification();
-                }
+                if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=zone.getRadius())sendNotification();
             }
         }
         if(k1==0){
@@ -272,9 +270,11 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("My notification")
                 .setContentText("This is a test notification")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setSmallIcon(R.drawable.cursor);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        notificationManager.notify(1, builder.build());
+        int notificationId = (int) System.currentTimeMillis();
+        notificationManager.notify(notificationId, builder.build());
     }
 
 
@@ -309,6 +309,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             MapObject circle = zones.get(position).getMapObject();
             mapObjectCollection.remove(circle);
             zones.remove(position);
+            ZoneStorage.getZones().remove(position);
             Names_of_zones.remove(position);
             ((ArrayAdapter) listView.getAdapter()).notifyDataSetChanged();
             Toast.makeText(this, "зона удалена", Toast.LENGTH_SHORT).show();
@@ -341,6 +342,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             circleCenter = point;
             MapObject circle = mapObjectCollection.addCircle(new Circle(circleCenter, DEFAULT_RADIUS));
             zones.add(new MyZones(point, DEFAULT_RADIUS, circle));
+            ZoneStorage.setZones(zones);
             editText.setVisibility(View.VISIBLE);
             Toast.makeText(getApplicationContext(), "введите название зоны", Toast.LENGTH_SHORT).show();
             isButtonClicked=false;
@@ -349,32 +351,6 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             editText.setVisibility(View.VISIBLE);
         }
     }
-    public class LocationService extends Service{
-        @Override
-        public void onCreate(){
-            super.onCreate();
-            startForeground(FOREGROUND_SERVICE_ID, createNotificationLoc());
-            startLocationUpdates();
-        }
-        private Notification createNotificationLoc(){
-            Intent notificationIntent = new Intent(this, MainActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 , notificationIntent, PendingIntent.FLAG_IMMUTABLE);
-            return new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle("Отслеживание местоположения")
-                    .setContentText("Идет отслеживание вашего местоположения")
-                    .setContentIntent(pendingIntent)
-                    .build();
-        }
-
-        @Nullable
-        @Override
-        public IBinder onBind(Intent intent) {
-            return null;
-        }
-    }
-
-
-
     @Override
     public void onMapLongTap(@NonNull Map map, @NonNull Point point) {
 
