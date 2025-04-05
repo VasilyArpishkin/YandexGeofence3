@@ -398,7 +398,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     protected void onPause() {
         super.onPause();
         // Остановка обновлений местоположения при паузе активности
-        fusedLocationClient.removeLocationUpdates(locationCallback);
+        //fusedLocationClient.removeLocationUpdates(locationCallback);
     }
 
     @Override
