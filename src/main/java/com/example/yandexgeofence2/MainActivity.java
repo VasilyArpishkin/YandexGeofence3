@@ -57,7 +57,6 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements InputListener {
     private final String API_KEY = "8fe19095-8322-4d19-b9cc-ef614df4a306";
-    private static final int FOREGROUND_SERVICE_ID = 1;
     private static final String CHANNEL_ID = "my_id";
     private MapView mapView;
     private FusedLocationProviderClient fusedLocationClient;
@@ -67,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     private MapObjectCollection mapObjectCollection;
     private Point circleCenter;
     private RelativeLayout relativeLayout;
-    private final float DEFAULT_RADIUS=100;
+    private final float DEFAULT_RADIUS=300;
     private Button  clickZone;
     private boolean isButtonClicked=false, isRaletiveLayoutVisible=false;
     private int k1=0,k2=0;
@@ -76,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     private ImageButton imageButton;
     private EditText editText;
     private List<MyZones> zones = new ArrayList<>();
+    private Intent intent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +83,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         MapKitFactory.setApiKey(API_KEY);
         MapKitFactory.initialize(this);
         setContentView(R.layout.activity_main);
+        intent = new Intent(this, BackgroundService.class);
         clickZone = findViewById(R.id.click);
         mapView = findViewById(R.id.mapview);
         listView=findViewById(R.id.lv);
@@ -375,11 +376,17 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         super.onPause();
         // Остановка обновлений местоположения при паузе активности
         //fusedLocationClient.removeLocationUpdates(locationCallback);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent);
+        } else {
+            startService(intent);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        stopService(intent);
         // Возобновление обновлений местоположения при возобновлении активности
         startLocationUpdates();
     }
