@@ -42,7 +42,7 @@ public class BackgroundService extends Service{
                     double latitude = location.getLatitude();
                     double longitude = location.getLongitude();
                     // Здесь можно обновить местоположение и проверить зоны
-                    //checkZones(latitude, longitude);
+                    if(ZoneStorage.getZones()!=null)findUserLocation(location.getLatitude(), location.getLongitude());
                 }
             }
         };
@@ -77,7 +77,15 @@ public class BackgroundService extends Service{
     private void findUserLocation(double latitude, double longitude){
         List<MyZones> zones =  ZoneStorage.getZones();
         for (MyZones zone : zones){
-            if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=zone.getRadius())sendNotification();
+            if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=zone.getRadius()){
+                if(!zone.getIsInside()) {
+                    sendNotification();
+                    zone.setIsInside(true);
+                }
+            }
+            else{
+                zone.setIsInside(false);
+            }
         }
     }
 

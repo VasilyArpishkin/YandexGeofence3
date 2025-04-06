@@ -238,7 +238,15 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         // Перемещаем камеру на новую позицию
         if(zones!=null){
             for(MyZones zone: zones){
-                if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=zone.getRadius())sendNotification();
+                if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=(double) zone.getRadius()){
+                    if(!zone.getIsInside()){
+                        sendNotification();
+                        zone.setIsInside(true);
+                    }
+                }
+                else{
+                    zone.setIsInside(false);
+                }
             }
         }
         if(k1==0){
@@ -342,7 +350,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         if(isButtonClicked && k2%2==0){
             circleCenter = point;
             MapObject circle = mapObjectCollection.addCircle(new Circle(circleCenter, DEFAULT_RADIUS));
-            zones.add(new MyZones(point, DEFAULT_RADIUS, circle));
+            zones.add(new MyZones(point, DEFAULT_RADIUS, circle, false));
             ZoneStorage.setZones(zones);
             editText.setVisibility(View.VISIBLE);
             Toast.makeText(getApplicationContext(), "введите название зоны", Toast.LENGTH_SHORT).show();
