@@ -239,6 +239,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         if(zones!=null){
             for(MyZones zone: zones){
                 if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=(double) zone.getRadius()){
+                    Log.d("Notification", "Trying to send notification...");
                     if(!zone.getIsInside()){
                         sendNotification();
                         zone.setIsInside(true);
@@ -273,8 +274,14 @@ public class MainActivity extends AppCompatActivity implements InputListener {
 
 
     public void sendNotification(){
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                // Запрашиваем разрешение, если его нет
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        2); // Используем другой requestCode (например 2)
+                return;
+            }
         }
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("My notification")
@@ -332,7 +339,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 1) { // requestCode должен совпадать с тем, что ты использовал в запросе разрешения
+        if (requestCode == 1) { // requestCode должен совпадать с тем, что я использовал в запросе разрешения
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Разрешение дано, запрашиваем текущее местоположение
                 getCurrentLocationOnce();
@@ -340,6 +347,14 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                 startLocationUpdates();
             } else {
                 Toast.makeText(this, "Разрешение на доступ к местоположению отклонено", Toast.LENGTH_SHORT).show();
+            }
+        }
+        else if(requestCode == 2){
+            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                sendNotification();
+            }
+            else {
+                Toast.makeText(this, "Разрешение на увдеомления отклонено", Toast.LENGTH_SHORT).show();
             }
         }
     }
