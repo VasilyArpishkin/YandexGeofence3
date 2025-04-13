@@ -18,6 +18,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.YandexGeofence2"
         tools:targetApi="31">
+        <meta-data
+            android:name="com.yandex.mapkit.apikey"
+            android:value="8fe19095-8322-4d19-b9cc-ef614df4a306"
+            />
         <activity
             android:name=".MainActivity"
             android:exported="true"

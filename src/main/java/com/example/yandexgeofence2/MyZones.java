@@ -7,6 +7,7 @@ public class MyZones {
     private boolean isInside;
     private float radius;
     private MapObject mapObject;
+    private String name="зона";
     public MyZones (Point center, float radius, MapObject mapObject, boolean isInside){
         this.center = center;
         this.radius = radius;
@@ -27,5 +28,11 @@ public class MyZones {
     }
     public void setIsInside(boolean isInside){
         this.isInside=isInside;
+    }
+    public void setName(String name){
+        this.name=name;
+    }
+    public String getName(){
+        return name;
     }
 }

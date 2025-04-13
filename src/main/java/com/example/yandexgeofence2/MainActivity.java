@@ -1,7 +1,6 @@
 package com.example.yandexgeofence2;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -9,18 +8,14 @@ import androidx.core.app.NotificationManagerCompat;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.Service;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
@@ -76,12 +71,13 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     private EditText editText;
     private List<MyZones> zones = new ArrayList<>();
     private Intent intent;
-
+    private static final int PERMISSION_REQUEST_CODE = 100;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        MapKitFactory.setApiKey(API_KEY);
-        MapKitFactory.initialize(this);
+        //MapKitFactory.setApiKey(API_KEY);
+        //MapKitFactory.initialize(this);
+        MapKitInitializer.init(this, API_KEY);
         setContentView(R.layout.activity_main);
         intent = new Intent(this, BackgroundService.class);
         clickZone = findViewById(R.id.click);
@@ -90,38 +86,60 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         editText = findViewById(R.id.et);
         relativeLayout = findViewById(R.id.rl);
         imageButton= findViewById(R.id.menu);
+        //mapObjectCollection = mapView.getMap().getMapObjects().addCollection();
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Names_of_zones);
+        listView.setAdapter(adapter);
+        checkAndRequestPermissions();
+        //mapView.getMap().addInputListener(this);
+        //startLocationUpdates();
+        //createNotificationChannel();
+    }
+
+
+    private void checkAndRequestPermissions() {
+        boolean needsLocationPermission = ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED;
+        boolean needsNotificationPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ActivityCompat.checkSelfPermission(this,
+                        Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED;
+        List<String> permissionsToRequest = new ArrayList<>();
+        if (needsLocationPermission) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if (needsNotificationPermission) {
+            permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
+        }
+        if (!permissionsToRequest.isEmpty()) {
+            ActivityCompat.requestPermissions(this,
+                    permissionsToRequest.toArray(new String[0]),
+                    PERMISSION_REQUEST_CODE);
+        } else {
+            initializeApp();
+        }
+    }
+
+
+    private void initializeApp() {
         mapObjectCollection = mapView.getMap().getMapObjects().addCollection();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Names_of_zones);
         listView.setAdapter(adapter);
-        
-        // Инициализация LocationCallback
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
-                if (locationResult == null) {
-                    return;
-                }
+                if (locationResult == null) return;
                 for (Location location : locationResult.getLocations()) {
-                    double latitude = location.getLatitude();
-                    double longitude = location.getLongitude();
-                    //float accuracy = location.getAccuracy();
-                    /*if(accuracy<50){
-                        updateUserLocation(latitude, longitude); // Обновляем позицию маркера
-                    }
-                    else {
-                        Toast.makeText(getApplicationContext(), "неточное местоположение", Toast.LENGTH_SHORT).show();
-                    }*/
-                    updateUserLocation(latitude, longitude); // Обновляем позицию маркера
+                    updateUserLocation(location.getLatitude(), location.getLongitude());
                 }
             }
         };
         mapView.getMap().addInputListener(this);
-        // Запуск периодического получения местоположения
         startLocationUpdates();
         createNotificationChannel();
-
-
+        setupClickListeners();
+    }
+    private void setupClickListeners(){
         clickZone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -138,8 +156,6 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                 }
             }
         });
-
-
         imageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -153,8 +169,6 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                 }
             }
         });
-
-
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -169,8 +183,6 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                 }
             }
         });
-
-
         listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
@@ -179,6 +191,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             }
         });
     }
+
 
 
     private void startLocationUpdates() {
@@ -197,10 +210,9 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
     }
 
-
     private void getCurrentLocationOnce(){
         if(ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED
-               && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED){
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED){
             return;
         }
         fusedLocationClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
@@ -231,11 +243,9 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             userMarker.setIcon(ImageProvider.fromResource(this, R.drawable.cursor)); // Укажите свою иконку
             Log.d("LocationUpdate", "MarkerCreated");
         } else {
-            // Если маркер уже существует, просто обновляем его позицию
             userMarker.setGeometry(userLocation);
             Log.d("LocationUpdate","MarkerChanged");
         }
-        // Перемещаем камеру на новую позицию
         if(zones!=null){
             for(MyZones zone: zones){
                 if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=(double) zone.getRadius()){
@@ -251,12 +261,12 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             }
         }
         if(k1==0){
-         mapView.getMap().move(
-                new CameraPosition(userLocation, 15.0f, 0.0f, 0.0f),
-                new com.yandex.mapkit.Animation(com.yandex.mapkit.Animation.Type.SMOOTH, 1),
-                null
-        );
-        k1++;
+            mapView.getMap().move(
+                    new CameraPosition(userLocation, 15.0f, 0.0f, 0.0f),
+                    new com.yandex.mapkit.Animation(com.yandex.mapkit.Animation.Type.SMOOTH, 1),
+                    null
+            );
+            k1++;
         }
     }
 
@@ -276,18 +286,18 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     public void sendNotification(){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                // Запрашиваем разрешение, если его нет
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                        2); // Используем другой requestCode (например 2)
+                        2);
                 return;
             }
         }
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("My notification")
-                .setContentText("This is a test notification")
+                .setContentTitle("Вы вошли в зону")
+                .setContentText("!!!")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setSmallIcon(R.drawable.cursor);
+                .setSmallIcon(R.drawable.cursor)
+                .setVibrate(new long[]{0, 500, 200, 500});
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
         int notificationId = (int) System.currentTimeMillis();
         notificationManager.notify(notificationId, builder.build());
@@ -339,27 +349,34 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 1) { // requestCode должен совпадать с тем, что я использовал в запросе разрешения
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Разрешение дано, запрашиваем текущее местоположение
-                getCurrentLocationOnce();
-                // Запускаем периодические обновления
-                startLocationUpdates();
+
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            boolean locationGranted = true;
+            boolean notificationsGranted = true;
+
+            for (int i = 0; i < permissions.length; i++) {
+                if (permissions[i].equals(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    locationGranted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
+                } else if (permissions[i].equals(Manifest.permission.POST_NOTIFICATIONS)) {
+                    notificationsGranted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
+                }
+            }
+
+            if (locationGranted) {
+                initializeApp();
+
+                if (!notificationsGranted) {
+                    Toast.makeText(this,
+                            "Уведомления отключены - вы не будете получать оповещения о входе в зону",
+                            Toast.LENGTH_LONG).show();
+                }
             } else {
-                Toast.makeText(this, "Разрешение на доступ к местоположению отклонено", Toast.LENGTH_SHORT).show();
-            }
-        }
-        else if(requestCode == 2){
-            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                sendNotification();
-            }
-            else {
-                Toast.makeText(this, "Разрешение на увдеомления отклонено", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this,
+                        "Приложению требуется доступ к геолокации для работы",
+                        Toast.LENGTH_LONG).show();
             }
         }
     }
-
-
     @Override
     public void onMapTap(@NonNull Map map, @NonNull Point point) {
         if(isButtonClicked && k2%2==0){
@@ -397,12 +414,12 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     @Override
     protected void onPause() {
         super.onPause();
-        // Остановка обновлений местоположения при паузе активности
-        //fusedLocationClient.removeLocationUpdates(locationCallback);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent);
-        } else {
-            startService(intent);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent);
+            } else {
+                startService(intent);
+            }
         }
     }
 
@@ -411,6 +428,6 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         super.onResume();
         stopService(intent);
         // Возобновление обновлений местоположения при возобновлении активности
-        startLocationUpdates();
+        checkAndRequestPermissions();
     }
 }
