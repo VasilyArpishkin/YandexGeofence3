@@ -5,6 +5,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.room.Entity;
+import androidx.room.Room;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -49,8 +51,12 @@ import com.yandex.runtime.image.ImageProvider;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements InputListener {
+    private AppDataBase database;
+    private ZoneDao zoneDao;
     private final String API_KEY = "8fe19095-8322-4d19-b9cc-ef614df4a306";
     private static final String CHANNEL_ID = "my_id";
     private MapView mapView;
@@ -79,6 +85,9 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         //MapKitFactory.initialize(this);
         MapKitInitializer.init(this, API_KEY);
         setContentView(R.layout.activity_main);
+        database = Room.databaseBuilder(getApplicationContext(),
+                AppDataBase.class, "zone-database").build();
+        zoneDao = database.zoneDao();
         intent = new Intent(this, BackgroundService.class);
         clickZone = findViewById(R.id.click);
         mapView = findViewById(R.id.mapview);
@@ -382,8 +391,15 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         if(isButtonClicked && k2%2==0){
             circleCenter = point;
             MapObject circle = mapObjectCollection.addCircle(new Circle(circleCenter, DEFAULT_RADIUS));
-            zones.add(new MyZones(point, DEFAULT_RADIUS, circle, false));
+            MyZones newZone=new MyZones(point, DEFAULT_RADIUS, circle, false);
+            zones.add(newZone);
             ZoneStorage.setZones(zones);
+            new Thread(() -> {
+                ZoneEntity entity = ZoneConverter.toEntity(newZone);
+                ZoneDao.insert(entity);
+                // Обновляем ID в объекте зоны
+                newZone.setId((int)entity.getId());
+            }).start();
             editText.setVisibility(View.VISIBLE);
             Toast.makeText(getApplicationContext(), "введите название зоны", Toast.LENGTH_SHORT).show();
             isButtonClicked=false;
