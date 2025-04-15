@@ -7,8 +7,7 @@ import com.yandex.mapkit.map.MapObject;
 import com.yandex.mapkit.map.MapObjectCollection;
 
 public class ZoneConverter {
-    private final int DEFAULT_RADIUS=300;
-    MapObjectCollection mapObjectCollection;
+    static MapObjectCollection mapObjectCollection;
     public static ZoneEntity toEntity(MyZones zone){
         Point center = zone.getCenter();
         return new ZoneEntity(
@@ -19,9 +18,9 @@ public class ZoneConverter {
                 zone.getName()
         );
     }
-    public MyZones toMyZones(ZoneEntity entity){
+    public static MyZones toMyZones(ZoneEntity entity){
         Point center = new Point(entity.getCenterLatitude(), entity.getCenterLongitude());
-        MapObject circle = mapObjectCollection.addCircle(new Circle(center, DEFAULT_RADIUS));
+        MapObject circle = mapObjectCollection.addCircle(new Circle(center, 300));
         return new MyZones(
                 center,
                 entity.getRadius(),

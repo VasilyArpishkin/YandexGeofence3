@@ -85,8 +85,10 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         //MapKitFactory.initialize(this);
         MapKitInitializer.init(this, API_KEY);
         setContentView(R.layout.activity_main);
-        database = Room.databaseBuilder(getApplicationContext(),
-                AppDataBase.class, "zone-database").build();
+        //database = Room.databaseBuilder(getApplicationContext(),
+         //       AppDataBase.class, "zone-database").build();
+        //zoneDao = database.zoneDao();
+        database = AppDataBase.getDatabase(this);
         zoneDao = database.zoneDao();
         intent = new Intent(this, BackgroundService.class);
         clickZone = findViewById(R.id.click);
@@ -134,6 +136,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Names_of_zones);
         listView.setAdapter(adapter);
+        loadZonesFromDatabase();
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
@@ -262,10 +265,12 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                     if(!zone.getIsInside()){
                         sendNotification();
                         zone.setIsInside(true);
+                        updateZoneInDatabase(zone);
                     }
                 }
                 else{
                     zone.setIsInside(false);
+                    updateZoneInDatabase(zone);
                 }
             }
         }
@@ -341,8 +346,20 @@ public class MainActivity extends AppCompatActivity implements InputListener {
 
     private void removeZone(int position){
         if (position>=0 && position<zones.size() && position<Names_of_zones.size()) {
+            MyZones zone = zones.get(position);
             MapObject circle = zones.get(position).getMapObject();
             mapObjectCollection.remove(circle);
+            new Thread (()->{
+                ZoneEntity entity = new ZoneEntity(
+                        zone.getCenter().getLatitude(),
+                        zone.getCenter().getLongitude(),
+                        zone.getRadius(),
+                        zone.getIsInside(),
+                        zone.getName()
+                );
+                entity.setId(zone.getId());
+                zoneDao.delete(entity);
+            }).start();
             zones.remove(position);
             ZoneStorage.getZones().remove(position);
             Names_of_zones.remove(position);
@@ -386,6 +403,68 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             }
         }
     }
+    private void loadZonesFromDatabase(){
+        new Thread(() -> {
+            try {
+                List<ZoneEntity> entities = zoneDao.getAllZones();
+
+                runOnUiThread(() -> {
+                    if (entities.isEmpty()) {
+                        Log.d("Zone", "No zones found in database");
+                        return;
+                    }
+
+                    // Очищаем текущие зоны (если нужно)
+                    zones.clear();
+                    Names_of_zones.clear();
+                    mapObjectCollection.clear();
+
+                    for (ZoneEntity entity : entities) {
+                        Point center = new Point(entity.getCenterLatitude(), entity.getCenterLongitude());
+                        MapObject circle = mapObjectCollection.addCircle(
+                                new Circle(center, entity.getRadius())
+                        );
+
+                        MyZones zone = new MyZones(
+                                center,
+                                entity.getRadius(),
+                                circle,
+                                entity.getIsInside()
+                        );
+                        zone.setName(entity.getName());
+                        zone.setId(entity.getId());
+
+                        zones.add(zone);
+                        Names_of_zones.add(entity.getName());
+                    }
+
+                    // Обновляем ListView
+                    ((ArrayAdapter)listView.getAdapter()).notifyDataSetChanged();
+                    Toast.makeText(MainActivity.this,
+                            "Loaded " + zones.size() + " zones",
+                            Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception e) {
+                Log.e("Zone", "Error loading zones", e);
+                runOnUiThread(() ->
+                        Toast.makeText(MainActivity.this,
+                                "Error loading zones",
+                                Toast.LENGTH_SHORT).show()
+                );
+            }
+        }).start();
+    }
+    private void updateZoneInDatabase(MyZones zone) {
+        new Thread(() -> {
+            try {
+                ZoneEntity entity = ZoneConverter.toEntity(zone);
+                entity.setId(zone.getId());
+                zoneDao.update(entity);
+            } catch (Exception e) {
+                Log.e("Geofence", "Error updating zone in DB", e);
+            }
+        }).start();
+    }
     @Override
     public void onMapTap(@NonNull Map map, @NonNull Point point) {
         if(isButtonClicked && k2%2==0){
@@ -396,7 +475,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             ZoneStorage.setZones(zones);
             new Thread(() -> {
                 ZoneEntity entity = ZoneConverter.toEntity(newZone);
-                ZoneDao.insert(entity);
+                zoneDao.insert(entity);
                 // Обновляем ID в объекте зоны
                 newZone.setId((int)entity.getId());
             }).start();

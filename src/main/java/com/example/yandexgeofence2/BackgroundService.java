@@ -120,8 +120,8 @@ public class BackgroundService extends Service{
             return;
         }
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("My notification")
-                .setContentText("This is a test notification")
+                .setContentTitle("Вы вошли в зону")
+                .setContentText("!!!")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setSmallIcon(R.drawable.cursor);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
