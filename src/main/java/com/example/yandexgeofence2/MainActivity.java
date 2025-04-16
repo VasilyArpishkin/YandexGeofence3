@@ -5,8 +5,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.room.Entity;
-import androidx.room.Room;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -51,12 +49,8 @@ import com.yandex.runtime.image.ImageProvider;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements InputListener {
-    private AppDataBase database;
-    private ZoneDao zoneDao;
     private final String API_KEY = "8fe19095-8322-4d19-b9cc-ef614df4a306";
     private static final String CHANNEL_ID = "my_id";
     private MapView mapView;
@@ -81,15 +75,9 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //MapKitFactory.setApiKey(API_KEY);
-        //MapKitFactory.initialize(this);
-        MapKitInitializer.init(this, API_KEY);
+        MapKitFactory.setApiKey(API_KEY);
+        MapKitFactory.initialize(this);
         setContentView(R.layout.activity_main);
-        //database = Room.databaseBuilder(getApplicationContext(),
-         //       AppDataBase.class, "zone-database").build();
-        //zoneDao = database.zoneDao();
-        database = AppDataBase.getDatabase(this);
-        zoneDao = database.zoneDao();
         intent = new Intent(this, BackgroundService.class);
         clickZone = findViewById(R.id.click);
         mapView = findViewById(R.id.mapview);
@@ -97,30 +85,29 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         editText = findViewById(R.id.et);
         relativeLayout = findViewById(R.id.rl);
         imageButton= findViewById(R.id.menu);
-        //mapObjectCollection = mapView.getMap().getMapObjects().addCollection();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Names_of_zones);
         listView.setAdapter(adapter);
         checkAndRequestPermissions();
-        //mapView.getMap().addInputListener(this);
-        //startLocationUpdates();
-        //createNotificationChannel();
     }
-
-
     private void checkAndRequestPermissions() {
         boolean needsLocationPermission = ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED;
+
         boolean needsNotificationPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 ActivityCompat.checkSelfPermission(this,
                         Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED;
+
         List<String> permissionsToRequest = new ArrayList<>();
+
         if (needsLocationPermission) {
             permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
         }
+
         if (needsNotificationPermission) {
             permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
         }
+
         if (!permissionsToRequest.isEmpty()) {
             ActivityCompat.requestPermissions(this,
                     permissionsToRequest.toArray(new String[0]),
@@ -136,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Names_of_zones);
         listView.setAdapter(adapter);
-        loadZonesFromDatabase();
+
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
@@ -146,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                 }
             }
         };
+
         mapView.getMap().addInputListener(this);
         startLocationUpdates();
         createNotificationChannel();
@@ -216,9 +204,8 @@ public class MainActivity extends AppCompatActivity implements InputListener {
 
         LocationRequest locationRequest = LocationRequest.create();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(5000); // 5 секунд
-        locationRequest.setFastestInterval(5000); // 5 секунд
-
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(5000);
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
     }
 
@@ -248,16 +235,17 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     private void updateUserLocation(double latitude, double longitude) {
         Point userLocation = new Point(latitude, longitude);
         Log.d("LocationUpdate","Update user location to"+latitude+","+longitude);
-        // Если маркер еще не создан, создаем его
         if (userMarker == null) {
             userMarker = mapView.getMap().getMapObjects().addPlacemark(userLocation);
-            userMarker.setOpacity(1.0f); // Прозрачность маркера
+            userMarker.setOpacity(1.0f);
             userMarker.setIcon(ImageProvider.fromResource(this, R.drawable.cursor)); // Укажите свою иконку
             Log.d("LocationUpdate", "MarkerCreated");
         } else {
+            // Если маркер уже существует, просто обновляем его позицию
             userMarker.setGeometry(userLocation);
             Log.d("LocationUpdate","MarkerChanged");
         }
+        // Перемещаем камеру на новую позицию
         if(zones!=null){
             for(MyZones zone: zones){
                 if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=(double) zone.getRadius()){
@@ -265,12 +253,10 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                     if(!zone.getIsInside()){
                         sendNotification();
                         zone.setIsInside(true);
-                        updateZoneInDatabase(zone);
                     }
                 }
                 else{
                     zone.setIsInside(false);
-                    updateZoneInDatabase(zone);
                 }
             }
         }
@@ -346,20 +332,8 @@ public class MainActivity extends AppCompatActivity implements InputListener {
 
     private void removeZone(int position){
         if (position>=0 && position<zones.size() && position<Names_of_zones.size()) {
-            MyZones zone = zones.get(position);
             MapObject circle = zones.get(position).getMapObject();
             mapObjectCollection.remove(circle);
-            new Thread (()->{
-                ZoneEntity entity = new ZoneEntity(
-                        zone.getCenter().getLatitude(),
-                        zone.getCenter().getLongitude(),
-                        zone.getRadius(),
-                        zone.getIsInside(),
-                        zone.getName()
-                );
-                entity.setId(zone.getId());
-                zoneDao.delete(entity);
-            }).start();
             zones.remove(position);
             ZoneStorage.getZones().remove(position);
             Names_of_zones.remove(position);
@@ -370,6 +344,8 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             Toast.makeText(this, "Ошибка, некоректный индекс зоны", Toast.LENGTH_SHORT).show();
         }
     }
+
+
 
 
     @Override
@@ -403,82 +379,13 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             }
         }
     }
-    private void loadZonesFromDatabase(){
-        new Thread(() -> {
-            try {
-                List<ZoneEntity> entities = zoneDao.getAllZones();
-
-                runOnUiThread(() -> {
-                    if (entities.isEmpty()) {
-                        Log.d("Zone", "No zones found in database");
-                        return;
-                    }
-
-                    // Очищаем текущие зоны (если нужно)
-                    zones.clear();
-                    Names_of_zones.clear();
-                    mapObjectCollection.clear();
-
-                    for (ZoneEntity entity : entities) {
-                        Point center = new Point(entity.getCenterLatitude(), entity.getCenterLongitude());
-                        MapObject circle = mapObjectCollection.addCircle(
-                                new Circle(center, entity.getRadius())
-                        );
-
-                        MyZones zone = new MyZones(
-                                center,
-                                entity.getRadius(),
-                                circle,
-                                entity.getIsInside()
-                        );
-                        zone.setName(entity.getName());
-                        zone.setId(entity.getId());
-
-                        zones.add(zone);
-                        Names_of_zones.add(entity.getName());
-                    }
-
-                    // Обновляем ListView
-                    ((ArrayAdapter)listView.getAdapter()).notifyDataSetChanged();
-                    Toast.makeText(MainActivity.this,
-                            "Loaded " + zones.size() + " zones",
-                            Toast.LENGTH_SHORT).show();
-                });
-            } catch (Exception e) {
-                Log.e("Zone", "Error loading zones", e);
-                runOnUiThread(() ->
-                        Toast.makeText(MainActivity.this,
-                                "Error loading zones",
-                                Toast.LENGTH_SHORT).show()
-                );
-            }
-        }).start();
-    }
-    private void updateZoneInDatabase(MyZones zone) {
-        new Thread(() -> {
-            try {
-                ZoneEntity entity = ZoneConverter.toEntity(zone);
-                entity.setId(zone.getId());
-                zoneDao.update(entity);
-            } catch (Exception e) {
-                Log.e("Geofence", "Error updating zone in DB", e);
-            }
-        }).start();
-    }
     @Override
     public void onMapTap(@NonNull Map map, @NonNull Point point) {
         if(isButtonClicked && k2%2==0){
             circleCenter = point;
             MapObject circle = mapObjectCollection.addCircle(new Circle(circleCenter, DEFAULT_RADIUS));
-            MyZones newZone=new MyZones(point, DEFAULT_RADIUS, circle, false);
-            zones.add(newZone);
+            zones.add(new MyZones(point, DEFAULT_RADIUS, circle, false));
             ZoneStorage.setZones(zones);
-            new Thread(() -> {
-                ZoneEntity entity = ZoneConverter.toEntity(newZone);
-                zoneDao.insert(entity);
-                // Обновляем ID в объекте зоны
-                newZone.setId((int)entity.getId());
-            }).start();
             editText.setVisibility(View.VISIBLE);
             Toast.makeText(getApplicationContext(), "введите название зоны", Toast.LENGTH_SHORT).show();
             isButtonClicked=false;
@@ -522,7 +429,6 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     protected void onResume() {
         super.onResume();
         stopService(intent);
-        // Возобновление обновлений местоположения при возобновлении активности
-        checkAndRequestPermissions();
+        startLocationUpdates();
     }
 }
