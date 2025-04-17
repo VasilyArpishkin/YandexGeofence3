@@ -57,7 +57,6 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
     private PlacemarkMapObject userMarker;
-    // Маркер для отображения местоположения пользователя
     private MapObjectCollection mapObjectCollection;
     private Point circleCenter;
     private RelativeLayout relativeLayout;
@@ -75,8 +74,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        MapKitFactory.setApiKey(API_KEY);
-        MapKitFactory.initialize(this);
+        MapKitInitializer.init(this, API_KEY);
         setContentView(R.layout.activity_main);
         intent = new Intent(this, BackgroundService.class);
         clickZone = findViewById(R.id.click);
@@ -84,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         listView=findViewById(R.id.lv);
         editText = findViewById(R.id.et);
         relativeLayout = findViewById(R.id.rl);
-        imageButton= findViewById(R.id.menu);
+        imageButton = findViewById(R.id.menu);
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Names_of_zones);
         listView.setAdapter(adapter);
@@ -99,11 +97,9 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                         Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED;
 
         List<String> permissionsToRequest = new ArrayList<>();
-
         if (needsLocationPermission) {
             permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
         }
-
         if (needsNotificationPermission) {
             permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
         }
@@ -151,6 +147,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                     Names_of_zones.add(editText.getText().toString());
                     editText.setVisibility(View.GONE);
                     k2++;
+                    zones.get(zones.size()-1).setName(editText.getText().toString());
                     clickZone.setText("добавить геозону");
                     editText.setText("");
                 }
@@ -241,17 +238,15 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             userMarker.setIcon(ImageProvider.fromResource(this, R.drawable.cursor)); // Укажите свою иконку
             Log.d("LocationUpdate", "MarkerCreated");
         } else {
-            // Если маркер уже существует, просто обновляем его позицию
             userMarker.setGeometry(userLocation);
             Log.d("LocationUpdate","MarkerChanged");
         }
-        // Перемещаем камеру на новую позицию
         if(zones!=null){
             for(MyZones zone: zones){
                 if(calculateDistance(zone.getCenter().getLatitude(), latitude, zone.getCenter().getLongitude(), longitude)<=(double) zone.getRadius()){
                     Log.d("Notification", "Trying to send notification...");
                     if(!zone.getIsInside()){
-                        sendNotification();
+                        sendNotification(zone);
                         zone.setIsInside(true);
                     }
                 }
@@ -283,17 +278,14 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     }
 
 
-    public void sendNotification(){
+    public void sendNotification(MyZones zone){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                        2);
                 return;
             }
         }
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Вы вошли в зону")
+                .setContentTitle("Вы вошли в "+zone.getName())
                 .setContentText("!!!")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setSmallIcon(R.drawable.cursor)

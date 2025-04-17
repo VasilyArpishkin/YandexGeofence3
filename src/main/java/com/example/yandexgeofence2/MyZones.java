@@ -8,19 +8,13 @@ public class MyZones {
     private float radius;
     private MapObject mapObject;
     private String name="зона";
-    private int id;
     public MyZones (Point center, float radius, MapObject mapObject, boolean isInside){
         this.center = center;
         this.radius = radius;
         this.mapObject=mapObject;
         this.isInside=isInside;
     }
-    public int getId(){
-        return id;
-    }
-    public void setId(int id){
-        this.id=id;
-    }
+
     public Point getCenter(){
         return center;
     }

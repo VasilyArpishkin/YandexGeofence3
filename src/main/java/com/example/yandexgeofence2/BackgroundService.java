@@ -40,9 +40,6 @@ public class BackgroundService extends Service{
                     return;
                 }
                 for (Location location : locationResult.getLocations()) {
-                    double latitude = location.getLatitude();
-                    double longitude = location.getLongitude();
-                    // Здесь можно обновить местоположение и проверить зоны
                     if(ZoneStorage.getZones()!=null)findUserLocation(location.getLatitude(), location.getLongitude());
                 }
             }
@@ -90,16 +87,6 @@ public class BackgroundService extends Service{
             }
         }
     }
-    private void checkAndStartLocationUpdatesWithRetry() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            startLocationUpdates();
-        } else {
-            // Повторить попытку через 1 секунду
-            new android.os.Handler(Looper.getMainLooper()).postDelayed(this::checkAndStartLocationUpdatesWithRetry, 1000);
-        }
-    }
-
 
     private void createNotificationChannel() {
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
@@ -133,15 +120,16 @@ public class BackgroundService extends Service{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         createNotificationChannel();
-        //startLocationUpdates();
-        // Создаем уведомление для ForegroundService
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Служба отслеживания местоположения")
                 .setContentText("Идет отслеживание вашего местоположения")
                 .setSmallIcon(R.drawable.cursor)
                 .build();
         startForeground(1, notification);
-        checkAndStartLocationUpdatesWithRetry();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            startLocationUpdates();
+        }
         return START_STICKY;
     }
 
