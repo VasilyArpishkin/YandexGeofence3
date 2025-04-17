@@ -1,5 +1,7 @@
 package com.example.yandexgeofence2;
 
+import static android.view.View.GONE;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -70,6 +72,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
     private EditText editText;
     private List<MyZones> zones = new ArrayList<>();
     private Intent intent;
+
     private static final int PERMISSION_REQUEST_CODE = 100;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         listView.setAdapter(adapter);
         checkAndRequestPermissions();
     }
+
     private void checkAndRequestPermissions() {
         boolean needsLocationPermission = ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED;
@@ -111,8 +115,8 @@ public class MainActivity extends AppCompatActivity implements InputListener {
         } else {
             initializeApp();
         }
-    }
 
+    }
 
     private void initializeApp() {
         mapObjectCollection = mapView.getMap().getMapObjects().addCollection();
@@ -145,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                 }
                 else if(!isButtonClicked && k2%2==1){
                     Names_of_zones.add(editText.getText().toString());
-                    editText.setVisibility(View.GONE);
+                    editText.setVisibility(GONE);
                     k2++;
                     zones.get(zones.size()-1).setName(editText.getText().toString());
                     clickZone.setText("добавить геозону");
@@ -161,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
                     isRaletiveLayoutVisible=true;
                 }
                 else {
-                    relativeLayout.setVisibility(View.GONE);
+                    relativeLayout.setVisibility(GONE);
                     isRaletiveLayoutVisible=false;
                 }
             }
@@ -371,6 +375,7 @@ public class MainActivity extends AppCompatActivity implements InputListener {
             }
         }
     }
+
     @Override
     public void onMapTap(@NonNull Map map, @NonNull Point point) {
         if(isButtonClicked && k2%2==0){

@@ -1,5 +1,4 @@
 package com.example.yandexgeofence2;
-
 import android.content.Context;
 import com.yandex.mapkit.MapKitFactory;
 
